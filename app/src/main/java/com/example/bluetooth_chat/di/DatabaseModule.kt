@@ -1,0 +1,31 @@
+package com.example.bluetooth_chat.di
+
+import android.app.Application
+import androidx.room.Room
+import com.example.bluetooth_chat.data.repository.ContactDao
+import com.example.bluetooth_chat.data.repository.RoomContactRepository
+import com.example.bluetooth_chat.domain.repository.ContactRepository
+import com.example.bluetoothchat.data.db.AppDatabase
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
+import jakarta.inject.Singleton
+
+@Module
+@InstallIn(SingletonComponent::class)
+class DatabaseModule {
+    @Provides
+    @Singleton
+    fun provideDatabase(app: Application): AppDatabase =
+        Room.databaseBuilder(app, AppDatabase::class.java, "bluetooth_chat.db")
+            .fallbackToDestructiveMigration(true)
+            .build()
+
+    @Provides
+    fun provideContactDao(db: AppDatabase): ContactDao = db.contactDao()
+
+    @Provides
+    fun provideContactRepository(dao: ContactDao): ContactRepository =
+        RoomContactRepository(dao)
+}
