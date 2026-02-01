@@ -9,7 +9,7 @@ import kotlinx.serialization.json.jsonObject
 
 @Serializable
 class AcceptPacket(
-    val requestId: String,
+    val id: String,
     val accepted: Boolean,
     val type: String = "accept"
 ){

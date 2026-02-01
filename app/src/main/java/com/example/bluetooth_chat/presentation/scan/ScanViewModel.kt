@@ -75,13 +75,16 @@ class ScanViewModel @Inject constructor(
                 val response = try {
                     connection.waitForResponse(id)
                 } catch (e: CancellationException) {
+                    connection.disconnect()
                     return@withContext false
                 }
 
-                if (response["type"]?.jsonPrimitive?.content == "advertise_accept") {
+                if (response["type"]?.jsonPrimitive?.content == "accept") {
                     val packet = AcceptPacket.deserialize(response)
+                    connection.disconnect()
                     packet.accepted
                 } else {
+                    connection.disconnect()
                     false
                 }
             }

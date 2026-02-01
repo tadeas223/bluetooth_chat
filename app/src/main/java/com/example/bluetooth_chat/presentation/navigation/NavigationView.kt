@@ -59,7 +59,7 @@ fun NavigationView(
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { viewModel.alertConfirm() }) {
+                    TextButton(onClick = { viewModel.alertDismiss() }) {
                         Text("DISMISS")
                     }
                 },

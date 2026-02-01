@@ -10,7 +10,7 @@ import kotlinx.serialization.json.jsonObject
 
 @Serializable
 class AdvertisePacket(
-    val requestId: String,
+    val id: String,
     val type: String = "advertise"
 ){
 
