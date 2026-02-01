@@ -44,12 +44,12 @@ class AndroidBluetoothScanService @Inject constructor(
             val newDevice = device.toDevice()
             if (newDevice in devices) {
                 Log.d(
-                    "BluetoothChat",
+                    "Bluetooth_chat",
                     "again scanned device: [${newDevice.address}] ${newDevice.name}"
                 )
                 devices
             } else {
-                Log.d("BluetoothChat", "scanned device: [${newDevice.address}] ${newDevice.name}")
+                Log.d("Bluetooth_chat", "scanned device: [${newDevice.address}] ${newDevice.name}")
                 devices + newDevice
             }
         }
@@ -76,7 +76,7 @@ class AndroidBluetoothScanService @Inject constructor(
             IntentFilter(BluetoothDevice.ACTION_FOUND)
         )
 
-        Log.d("BluetoothChat", "BluetoothAdapter enabled: ${bluetoothAdapter?.isEnabled}")
+        Log.d("Bluetooth_chat", "BluetoothAdapter enabled: ${bluetoothAdapter?.isEnabled}")
         bluetoothAdapter?.startDiscovery()
     }
 

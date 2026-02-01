@@ -33,10 +33,6 @@ class ContactsViewModel @Inject constructor(
         }.launchIn(viewModelScope)
     }
 
-    fun onContactClicked(contact: Contact) {
-
-    }
-
     fun onContactAdd() {
 
     }

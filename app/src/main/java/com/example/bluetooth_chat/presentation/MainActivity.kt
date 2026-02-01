@@ -1,6 +1,6 @@
 package com.example.bluetooth_chat.presentation
 
-import AppNavHost
+import NavigationView
 import android.Manifest
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
@@ -74,7 +74,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             Bluetooth_chatTheme {
-                AppNavHost(
+                NavigationView(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(MaterialTheme.colorScheme.background),

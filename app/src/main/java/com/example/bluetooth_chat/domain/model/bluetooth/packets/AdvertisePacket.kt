@@ -9,16 +9,22 @@ import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.jsonObject
 
 @Serializable
-class AdvertisePacket(){
+class AdvertisePacket(
+    val requestId: String,
     val type: String = "advertise"
+){
 
     companion object {
+        private val json = Json {
+            encodeDefaults = true
+        }
+
         fun deserialize(json: JsonObject): AdvertisePacket {
             return Json.decodeFromJsonElement<AdvertisePacket>(json)
         }
     }
 
     fun serialize(): JsonObject {
-        return Json.encodeToJsonElement(this).jsonObject
+        return json.encodeToJsonElement(this).jsonObject
     }
 }

@@ -1,19 +1,27 @@
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.navigation.NavGraphBuilder
+import androidx.compose.ui.window.DialogProperties
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.example.bluetooth_chat.presentation.chat.ChatView
 import com.example.bluetooth_chat.presentation.contacts.ContactsView
+import com.example.bluetooth_chat.presentation.navigation.NavigationViewModel
 import com.example.bluetooth_chat.presentation.profile.ProfileView
 import com.example.bluetooth_chat.presentation.scan.ScanView
+import kotlin.collections.listOf
 
 
 sealed class BottomNavItem(val route: String, val label: String) {
@@ -28,39 +36,82 @@ val bottomNavItems = listOf(
     //BottomNavItem.Settings
 )
 @Composable
-fun AppNavHost(
+fun NavigationView(
     navController: NavHostController = rememberNavController(),
+    viewModel: NavigationViewModel = hiltViewModel<NavigationViewModel>(),
     modifier: Modifier = Modifier
 ) {
+    val uiState by viewModel.uiState.collectAsState()
+
     Scaffold(
         bottomBar = { BottomNavigationBar(navController) },
         modifier = modifier
-    ) {
+    ) { paddingValues ->
+
+        if(uiState.advertisingDevice != null) {
+            AlertDialog(
+                onDismissRequest = { viewModel.alertDismiss() },
+                title = { Text("alert") },
+                text = { Text("${uiState.advertisingDevice!!.name} wants to pair with you") },
+                confirmButton = {
+                    TextButton(onClick = { viewModel.alertConfirm() }) {
+                        Text("CONFIRM")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { viewModel.alertConfirm() }) {
+                        Text("DISMISS")
+                    }
+                },
+                properties = DialogProperties(dismissOnClickOutside = true )
+            )
+        }
         NavHost(
             navController = navController,
             startDestination = BottomNavItem.Contacts.route,
             modifier = modifier
                 .fillMaxSize()
+                .padding(paddingValues)
         ) {
 
             composable("scan") {
                 ScanView(
                     navController = navController,
-                    modifier = modifier.safeContentPadding()
+                    modifier = Modifier.safeContentPadding()
                 )
             }
 
             composable(BottomNavItem.Contacts.route) {
                 ContactsView(
                     navController = navController,
-                    modifier = modifier.safeContentPadding()
+                    modifier = Modifier.safeContentPadding()
                 )
             }
 
             composable(BottomNavItem.Profile.route) {
                 ProfileView(
                     navController = navController,
-                    modifier = modifier.safeContentPadding(),
+                    modifier = Modifier.safeContentPadding(),
+                )
+            }
+
+            composable("chat/{id}",
+                arguments = listOf(
+                    navArgument("id" ) {
+                        type = NavType.IntType
+                    }
+                )
+            ) { entry ->
+
+                val id = entry.arguments?.getInt("id")
+                if(id == null) {
+                    navController.popBackStack()
+                }
+
+                ChatView(
+                    contactId = id!!,
+                    navController = navController,
+                    modifier = Modifier.safeContentPadding()
                 )
             }
 

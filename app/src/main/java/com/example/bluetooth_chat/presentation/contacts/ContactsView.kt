@@ -37,7 +37,7 @@ fun ContactsView(
             val cardItems = uiState.contacts.map { contact ->
                 ClickableCardItem(
                     text = "${contact.username} • offline",
-                    onClick = { viewModel.onContactClicked(contact) }
+                    onClick = { navController.navigate("chat/${contact.id}") }
                 )
             }
 

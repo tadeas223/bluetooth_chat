@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.JsonObject
 import java.io.IOException
 import java.util.UUID
 import javax.inject.Inject
@@ -52,6 +53,12 @@ class AndroidBluetoothConnectService @Inject constructor(
     private var currentServerSocket: BluetoothServerSocket? = null
     private var serverJob: Job? = null
 
+    private var onReceive: ((Connection, JsonObject) -> Unit)? = null
+
+    override fun onReceive(callback: ((Connection, JsonObject) -> Unit)?) {
+        onReceive = callback
+    }
+
     override fun startServer() {
         if(!hasPermissions(context, requiredPermissions))  {
             throw SecurityException("missing required permissions")
@@ -63,7 +70,7 @@ class AndroidBluetoothConnectService @Inject constructor(
                 UUID.fromString(SERVICE_UUID)
             )
 
-            Log.d("BluetoothChat", "server started");
+            Log.d("Bluetooth_chat", "server started");
             while (isActive) {
                 val clientSocket = try {
                     currentServerSocket?.accept()
@@ -74,11 +81,18 @@ class AndroidBluetoothConnectService @Inject constructor(
                 if(clientSocket != null) {
                     val device = clientSocket.remoteDevice.toDevice()
                     val connection = BluetoothConnection(clientSocket)
-                    Log.d("BluetoothChat", "device connected to the server: ${device.address}");
+                    try {
+                        connection.connect()
+                    } catch(e: IOException) {
+                        Log.d("Bluetooth_chat", "failed to connect device to the server: ${device.address}");
+                        continue
+                    }
+
+                    Log.d("Bluetooth_chat", "device connected to the server: ${device.address}");
 
                     connection.onDisconnect {
                         val current = _activeConnections.value.toMutableMap()
-                        Log.d("BluetoothChat", "device disconnected from the server ${device.address}");
+                        Log.d("Bluetooth_chat", "device disconnected from the server ${device.address}");
                         var device: Device? = null
                         current.forEach { entry ->
                             if(entry.value == connection) {
@@ -93,6 +107,8 @@ class AndroidBluetoothConnectService @Inject constructor(
 
                         _activeConnections.value = current.toMap()
                     }
+
+                    connection.onReceive(onReceive)
 
                     val current = _activeConnections.value.toMutableMap()
                     current[device] = connection

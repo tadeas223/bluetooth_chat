@@ -43,7 +43,7 @@ fun ScanView(navController: NavController,
     if(uiState.showAlert) {
         AlertDialog(
             onDismissRequest = { false },
-            title = { Text("Alert") },
+            title = { Text("error") },
             text = { Text("device rejected your request") },
             confirmButton = {
                 TextButton(onClick = { viewModel.resetAlert() }) {
@@ -52,10 +52,6 @@ fun ScanView(navController: NavController,
             },
             properties = DialogProperties(dismissOnClickOutside = false)
         )
-    }
-
-    if(uiState.isLoading) {
-
     }
 
     when {

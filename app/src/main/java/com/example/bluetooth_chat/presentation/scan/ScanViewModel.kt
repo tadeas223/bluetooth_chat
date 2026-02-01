@@ -1,17 +1,15 @@
 package com.example.bluetooth_chat.presentation.scan
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.room.paging.util.INITIAL_ITEM_COUNT
 import com.example.bluetooth_chat.domain.model.bluetooth.Device
-import com.example.bluetooth_chat.domain.model.bluetooth.packets.AdvertiseAcceptPacket
+import com.example.bluetooth_chat.domain.model.bluetooth.packets.AcceptPacket
 import com.example.bluetooth_chat.domain.model.bluetooth.packets.AdvertisePacket
 import com.example.bluetooth_chat.domain.service.bluetooth.BluetoothConnectService
 import com.example.bluetooth_chat.domain.service.bluetooth.BluetoothScanService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,7 +20,9 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import java.io.IOException
+import java.util.UUID
 import javax.inject.Inject
+import kotlin.coroutines.cancellation.CancellationException
 
 data class ScanUiState (
     val devices: List<Device> = emptyList(),
@@ -59,35 +59,41 @@ class ScanViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
 
-            withContext(Dispatchers.IO) {
-                val connection = bluetoothConnectService.createConnection(device.address);
+            val success = withContext(Dispatchers.IO) {
+                val connection = bluetoothConnectService.createConnection(device.address)
+
                 try {
-                    connection.connect();
-                } catch(e: IOException) {
-                    _uiState.value = _uiState.value.copy(showAlert = true)
-                    return@withContext
+                    connection.connect()
+                } catch (e: IOException) {
+                    Log.d("Bluetooth_chat", "failed to connect", e)
+                    return@withContext false
                 }
 
-                connection.send(AdvertisePacket().serialize())
-                for(i in 1..10) {
-                    val response: JsonObject
-                    try {
-                        response = connection.waitForResponse()
-                    } catch(e: IOException) {
-                        _uiState.value = _uiState.value.copy(showAlert = true)
-                        continue;
-                    }
+                val id = UUID.randomUUID().toString()
+                connection.send(AdvertisePacket(id).serialize())
 
-                    if(response["type"]!!.jsonPrimitive.content == "advertise_accept") {
-                        val packet = AdvertiseAcceptPacket.deserialize(response);
-                        if(packet.accepted) {
-                            _uiState.value = _uiState.value.copy(navigateBack = true)
-                        } else {
-                            _uiState.value = _uiState.value.copy(showAlert = true)
-                        }
-                    }
+                val response = try {
+                    connection.waitForResponse(id)
+                } catch (e: CancellationException) {
+                    return@withContext false
+                }
+
+                if (response["type"]?.jsonPrimitive?.content == "advertise_accept") {
+                    val packet = AcceptPacket.deserialize(response)
+                    packet.accepted
+                } else {
+                    false
                 }
             }
+
+            if (success) {
+                Log.d("Bluetooth_chat", "device accepted connection")
+                _uiState.value = _uiState.value.copy(navigateBack = true)
+            } else {
+                Log.d("Bluetooth_chat", "device rejected or failed")
+                _uiState.value = _uiState.value.copy(showAlert = true)
+            }
+
             _uiState.value = _uiState.value.copy(isLoading = false)
         }
     }
