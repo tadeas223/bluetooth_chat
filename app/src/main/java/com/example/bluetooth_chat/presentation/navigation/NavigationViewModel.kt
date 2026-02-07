@@ -19,6 +19,7 @@ import javax.inject.Inject
 
 data class NavigationUiState (
     val advertisingDevice: Device? = null,
+    val advertiseAccepted: Boolean = false
 )
 {}
 
@@ -40,6 +41,7 @@ class NavigationViewModel @Inject constructor(
         advertiseDecision = decision
         return decision.await()
     }
+
     init {
         bluetoothConnectService.onReceive { connection, json ->
             if(advertisingConnection != null) {
@@ -61,8 +63,10 @@ class NavigationViewModel @Inject constructor(
 
                     if (accepted) {
                         connection.send(AcceptPacket(id,true).serialize())
+                        _uiState.value = _uiState.value.copy(advertiseAccepted = true)
                     } else {
                         connection.send(AcceptPacket(id,false).serialize())
+                        _uiState.value = _uiState.value.copy(advertiseAccepted = false)
                     }
 
                     advertisingConnection = null
@@ -76,17 +80,18 @@ class NavigationViewModel @Inject constructor(
     fun alertDismiss() {
         advertiseDecision?.complete(false)
         advertiseDecision = null
-
-        _uiState.value = _uiState.value.copy(
-            advertisingDevice = null)
     }
 
     fun alertConfirm() {
         advertiseDecision?.complete(true)
         advertiseDecision = null
+    }
 
+    fun resetAlert() {
         _uiState.value = _uiState.value.copy(
-            advertisingDevice = null)
+            advertisingDevice = null,
+            advertiseAccepted = false
+        )
     }
 
     override fun onCleared() {

@@ -27,7 +27,7 @@ import kotlin.coroutines.cancellation.CancellationException
 data class ScanUiState (
     val devices: List<Device> = emptyList(),
     val showAlert: Boolean = false,
-    val navigateBack: Boolean = false,
+    val acceptedDevice: Device? = null,
     val isLoading: Boolean = false
 ) {}
 
@@ -91,10 +91,10 @@ class ScanViewModel @Inject constructor(
 
             if (success) {
                 Log.d("Bluetooth_chat", "device accepted connection")
-                _uiState.value = _uiState.value.copy(navigateBack = true)
+                _uiState.value = _uiState.value.copy(acceptedDevice = device)
             } else {
                 Log.d("Bluetooth_chat", "device rejected or failed")
-                _uiState.value = _uiState.value.copy(showAlert = true)
+                _uiState.value = _uiState.value.copy(showAlert = true, acceptedDevice = null)
             }
 
             _uiState.value = _uiState.value.copy(isLoading = false)

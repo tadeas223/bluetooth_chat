@@ -32,8 +32,8 @@ fun ScanView(navController: NavController,
              modifier: Modifier = Modifier) {
     val uiState by viewModel.uiState.collectAsState()
 
-    if(uiState.navigateBack) {
-        navController.navigate("contacts") {
+    if(uiState.acceptedDevice != null) {
+        navController.navigate("add_user/${uiState.acceptedDevice!!.address}/${uiState.acceptedDevice!!.name}") {
             launchSingleTop = true
             restoreState = true
             popUpTo(navController.graph.startDestinationId)

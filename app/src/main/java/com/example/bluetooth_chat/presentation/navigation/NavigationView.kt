@@ -3,6 +3,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -16,6 +17,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.bluetooth_chat.presentation.add_user.AddUserView
 import com.example.bluetooth_chat.presentation.chat.ChatView
 import com.example.bluetooth_chat.presentation.contacts.ContactsView
 import com.example.bluetooth_chat.presentation.navigation.NavigationViewModel
@@ -42,6 +44,12 @@ fun NavigationView(
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    LaunchedEffect(uiState.advertiseAccepted) {
+        if(uiState.advertisingDevice != null && uiState.advertiseAccepted) {
+            navController.navigate("add_user/${uiState.advertisingDevice!!.address}/${uiState.advertisingDevice!!.name}")
+        }
+    }
 
     Scaffold(
         bottomBar = { BottomNavigationBar(navController) },
@@ -110,6 +118,31 @@ fun NavigationView(
 
                 ChatView(
                     contactId = id!!,
+                    navController = navController,
+                    modifier = Modifier.safeContentPadding()
+                )
+            }
+
+            composable("add_user/{address}/{name}",
+                arguments = listOf(
+                    navArgument("address" ) {
+                        type = NavType.StringType
+                    },
+                    navArgument("name" ) {
+                        type = NavType.StringType
+                    }
+                )
+            ) { entry ->
+
+                val address = entry.arguments?.getString("address")
+                val name = entry.arguments?.getString("name")
+                if(address == null || name == null) {
+                    navController.popBackStack()
+                }
+
+                AddUserView(
+                    deviceName = name!!,
+                    deviceAddress = address!!,
                     navController = navController,
                     modifier = Modifier.safeContentPadding()
                 )
