@@ -147,7 +147,7 @@ class BluetoothConnection(
         _incoming.emit(json)
     }
 
-    suspend fun sendAndWait(packet: JsonObject, timeoutMillis: Long = 10000L): JsonObject? {
+    override suspend fun sendAndWait(packet: JsonObject, timeoutMillis: Long): JsonObject? {
         return try {
             val requestId = packet["id"]?.jsonPrimitive?.content
                 ?: throw IllegalArgumentException("packet must have an 'id' field")
