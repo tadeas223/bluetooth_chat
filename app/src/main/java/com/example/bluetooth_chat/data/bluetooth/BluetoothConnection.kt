@@ -143,9 +143,26 @@ class BluetoothConnection(
             }
         }
 
-        // unsolicited packet
         onReceive?.invoke(this, json)
         _incoming.emit(json)
+    }
+
+    suspend fun sendAndWait(packet: JsonObject, timeoutMillis: Long = 10000L): JsonObject? {
+        return try {
+            val requestId = packet["id"]?.jsonPrimitive?.content
+                ?: throw IllegalArgumentException("packet must have an 'id' field")
+
+            send(packet)
+
+            withTimeout(timeoutMillis) {
+                waitForResponse(requestId)
+            }
+
+        } catch (e: Exception) {
+            Log.e("Bluetooth_chat", "sendAndWait failed for ${socket.remoteDevice.address}", e)
+            disconnect()
+            null
+        }
     }
 
     private fun updateConnectStatus() {

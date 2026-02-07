@@ -13,6 +13,7 @@ interface Connection {
     suspend fun send(json: JsonObject)
 
     suspend fun waitForResponse(requestId: String): JsonObject
+    suspend fun sendAndWait(packet: JsonObject, timeoutMillis: Long = 10000L): JsonObject?
 
     fun onReceive(callback: ((Connection, JsonObject) -> Unit)?)
 
