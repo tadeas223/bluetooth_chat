@@ -2,8 +2,13 @@ package com.example.bluetooth_chat.presentation.navigation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.bluetooth_chat.data.repository.RoomChatMessageRepository
+import com.example.bluetooth_chat.domain.model.ChatMessage
+import com.example.bluetooth_chat.domain.model.Contact
 import com.example.bluetooth_chat.domain.model.bluetooth.Device
 import com.example.bluetooth_chat.domain.model.bluetooth.packets.AcceptPacket
+import com.example.bluetooth_chat.domain.repository.ChatMessageRepository
+import com.example.bluetooth_chat.domain.repository.ContactRepository
 import com.example.bluetooth_chat.domain.service.bluetooth.BluetoothConnectService
 import com.example.bluetooth_chat.domain.service.bluetooth.Connection
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -11,6 +16,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonPrimitive
@@ -19,13 +25,15 @@ import javax.inject.Inject
 
 data class NavigationUiState (
     val advertisingDevice: Device? = null,
-    val advertiseAccepted: Boolean = false
+    val advertiseAccepted: Boolean = false,
 )
 {}
 
 @HiltViewModel
 class NavigationViewModel @Inject constructor(
-    val bluetoothConnectService: BluetoothConnectService
+    val bluetoothConnectService: BluetoothConnectService,
+    val chatMessageRepository: ChatMessageRepository,
+    val contactRepository: ContactRepository
 ): ViewModel() {
 
     private val _uiState = MutableStateFlow(NavigationUiState())
@@ -46,6 +54,36 @@ class NavigationViewModel @Inject constructor(
         bluetoothConnectService.onReceive { connection, json ->
             if(advertisingConnection != null) {
                 return@onReceive
+            }
+
+            if(json["type"]!!.jsonPrimitive.content == "message") {
+               viewModelScope.launch {
+                   val id = json["id"]!!.jsonPrimitive.content;
+                   var contact: Contact? = null;
+
+                   try {
+                       contact = contactRepository.selectByAddress(connection.address).first();
+                   } catch(e: Exception) {
+                       connection.send(AcceptPacket(id, false).serialize());
+                       return@launch
+                   }
+
+                   try {
+                       chatMessageRepository.insert(
+                           ChatMessage(
+                               id = 0,
+                               contact = contact!!,
+                               isLocal = false,
+                               text = json["text"]!!.jsonPrimitive.content
+                           )
+                       )
+                   } catch(e: Exception) {
+                       connection.send(AcceptPacket(id, false).serialize());
+                   }
+
+                   connection.send(AcceptPacket(id, true).serialize());
+                   return@launch
+               }
             }
 
             if(json["type"]!!.jsonPrimitive.content == "advertise") {

@@ -10,6 +10,7 @@ import kotlinx.serialization.json.jsonObject
 @Serializable
 class MessagePacket(
     val id: String,
+    val text: String,
     val type: String = "message"
 ){
 
