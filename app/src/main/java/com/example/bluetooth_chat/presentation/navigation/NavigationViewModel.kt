@@ -80,11 +80,15 @@ class NavigationViewModel @Inject constructor(
     fun alertDismiss() {
         advertiseDecision?.complete(false)
         advertiseDecision = null
+
+        resetAlert()
     }
 
     fun alertConfirm() {
         advertiseDecision?.complete(true)
         advertiseDecision = null
+
+        resetAlert()
     }
 
     fun resetAlert() {

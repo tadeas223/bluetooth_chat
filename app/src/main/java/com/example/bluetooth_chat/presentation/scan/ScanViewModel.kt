@@ -70,16 +70,9 @@ class ScanViewModel @Inject constructor(
                 }
 
                 val id = UUID.randomUUID().toString()
-                connection.send(AdvertisePacket(id).serialize())
+                val response = connection.sendAndWait(AdvertisePacket(id).serialize())
 
-                val response = try {
-                    connection.waitForResponse(id)
-                } catch (e: CancellationException) {
-                    connection.disconnect()
-                    return@withContext false
-                }
-
-                if (response["type"]?.jsonPrimitive?.content == "accept") {
+                if (response != null && response["type"]?.jsonPrimitive?.content == "accept") {
                     val packet = AcceptPacket.deserialize(response)
                     connection.disconnect()
                     packet.accepted

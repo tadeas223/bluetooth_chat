@@ -7,15 +7,12 @@ plugins {
 
     id("com.google.devtools.ksp")
     id("com.google.dagger.hilt.android")
-
     kotlin("plugin.serialization") version "2.3.0"
 }
 
 android {
     namespace = "com.example.bluetooth_chat"
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.bluetooth_chat"
