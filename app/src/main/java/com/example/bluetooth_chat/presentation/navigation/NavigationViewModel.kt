@@ -112,7 +112,18 @@ class NavigationViewModel @Inject constructor(
             }
         }
 
+        startServer()
+    }
+
+    fun startServer() {
         bluetoothConnectService.startServer()
+        viewModelScope.launch {
+            bluetoothConnectService.bluetoothEnabled.collect { enabled ->
+                if (!enabled) {
+                    bluetoothConnectService.requestBluetooth()
+                }
+            }
+        }
     }
 
     fun alertDismiss() {

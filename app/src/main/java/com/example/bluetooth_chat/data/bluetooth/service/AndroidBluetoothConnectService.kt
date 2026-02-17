@@ -2,9 +2,13 @@ package com.example.bluetooth_chat.data.bluetooth.service
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothServerSocket
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.util.Log
 import com.example.bluetooth_chat.data.bluetooth.BluetoothConnection
 import com.example.bluetooth_chat.data.bluetooth.toDevice
@@ -16,9 +20,11 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonObject
@@ -38,6 +44,8 @@ class AndroidBluetoothConnectService @Inject constructor(
         Manifest.permission.BLUETOOTH_CONNECT,
     )
 
+    private var onBluetoothOff: (() -> Unit)? = null;
+
     private val _activeConnections = MutableStateFlow<Map<Device, Connection>>(emptyMap())
     override val activeConnections
         get() = _activeConnections.asStateFlow()
@@ -55,8 +63,48 @@ class AndroidBluetoothConnectService @Inject constructor(
 
     private var onReceive: ((Connection, JsonObject) -> Unit)? = null
 
+    override val bluetoothEnabled: Flow<Boolean> = callbackFlow {
+        val adapter = bluetoothAdapter
+        if (adapter == null) {
+            trySend(false)
+            close()
+            return@callbackFlow
+        }
+
+        trySend(adapter.isEnabled)
+
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                if (intent?.action == BluetoothAdapter.ACTION_STATE_CHANGED) {
+                    val state = intent.getIntExtra(
+                        BluetoothAdapter.EXTRA_STATE,
+                        BluetoothAdapter.ERROR
+                    )
+                    trySend(state == BluetoothAdapter.STATE_ON)
+                }
+            }
+        }
+
+        val filter = IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED)
+        context.registerReceiver(receiver, filter)
+
+        awaitClose { context.unregisterReceiver(receiver) }
+    }
+
+    override fun requestBluetooth() {
+        val adapter = bluetoothAdapter ?: return
+        if (!adapter.isEnabled) {
+            val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+            context.startActivity(enableBtIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        }
+    }
+
     override fun onReceive(callback: ((Connection, JsonObject) -> Unit)?) {
         onReceive = callback
+    }
+
+    override fun onBluetoothOff(callback: () -> Unit) {
+        onBluetoothOff = callback;
     }
 
     override fun startServer() {
@@ -75,7 +123,9 @@ class AndroidBluetoothConnectService @Inject constructor(
                 val clientSocket = try {
                     currentServerSocket?.accept()
                 } catch (_: IOException) {
-                    break
+                    onBluetoothOff?.invoke()
+                    stopServer();
+                    break;
                 }
 
                 if(clientSocket != null) {
@@ -136,8 +186,14 @@ class AndroidBluetoothConnectService @Inject constructor(
             throw SecurityException("could not get BluetoothAdapter, probably missing permissions")
         }
 
-        val blDevice = bluetoothAdapter!!.getRemoteDevice(address)
-        val socket = blDevice.createRfcommSocketToServiceRecord(UUID.fromString(SERVICE_UUID))
+        val socket = try {
+            val blDevice = bluetoothAdapter!!.getRemoteDevice(address)
+            blDevice.createRfcommSocketToServiceRecord(UUID.fromString(SERVICE_UUID))
+        } catch(e: IOException) {
+            onBluetoothOff?.invoke();
+            stopServer();
+            throw e;
+        }
         return BluetoothConnection(socket)
     }
 }

@@ -8,9 +8,14 @@ interface BluetoothConnectService {
     val requiredPermissions: List<String>
     val activeConnections: Flow<Map<Device, Connection>>
 
+    val bluetoothEnabled: Flow<Boolean>
+
+    fun requestBluetooth()
     fun onReceive(callback: ((Connection, JsonObject) -> Unit)?)
     fun startServer()
     fun stopServer()
+
+    fun onBluetoothOff(callback: () -> Unit)
 
     suspend fun createConnection(address: String): Connection
 }

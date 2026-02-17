@@ -16,6 +16,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.DEBUG_PROPERTY_VALUE_ON
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,6 +25,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.forEach
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonObject
@@ -50,6 +53,7 @@ class ChatViewModel @Inject constructor(
     val uiState: StateFlow<ChatUiState>
         get() = _uiState.asStateFlow()
 
+    private var reconnectJob: Job? = null
     var connection: Connection? = null
 
     fun setContact(id: Int) {
@@ -64,9 +68,13 @@ class ChatViewModel @Inject constructor(
                 }
                 .launchIn(this)
 
-            connection = bluetoothConnectService.createConnection(contact.address)
-            tryReconnect()
+            connection = try {
+                bluetoothConnectService.createConnection(contact.address)
+            } catch(e: Exception) {
+                null
+            }
         }
+        startAutoReconnect()
     }
 
     fun tryReconnect() {
@@ -75,7 +83,7 @@ class ChatViewModel @Inject constructor(
             return
         }
 
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             _uiState.value = _uiState.value.copy(connecting = true, connectionFailed = false)
 
             try {
@@ -134,11 +142,37 @@ class ChatViewModel @Inject constructor(
         }
     }
 
+    fun startAutoReconnect() {
+        reconnectJob?.cancel()
+
+        reconnectJob = viewModelScope.launch {
+            while (isActive) {
+                val conn = connection
+                val connected = _uiState.value.connected
+
+                if (conn != null && !connected) {
+                    tryReconnect()
+                }
+
+                delay(1000)
+            }
+        }
+    }
+
+    fun stopAutoReconnect() {
+        reconnectJob?.cancel()
+        reconnectJob = null
+    }
+
     fun resetConnectionFailed() {
         _uiState.value = _uiState.value.copy(connectionFailed = false)
     }
 
     fun resetSendFailedMsg() {
         _uiState.value = _uiState.value.copy(sendFailed = null)
+    }
+
+    override fun onCleared() {
+        stopAutoReconnect();
     }
 }

@@ -78,6 +78,7 @@ fun NavigationView(
                 properties = DialogProperties(dismissOnClickOutside = true )
             )
         }
+
         NavHost(
             navController = navController,
             startDestination = BottomNavItem.Contacts.route,

@@ -44,7 +44,24 @@ fun ChatView(
         ) {
             // --- Top App Bar ---
             TopAppBar(
-                title = { Text(uiState.contact!!.username, color = MaterialTheme.colorScheme.onBackground) },
+                title = {
+                    Column {
+                        Text(
+                            text = uiState.contact!!.username,
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+
+                        Text(
+                            style = MaterialTheme.typography.titleMedium,
+                            color = if (uiState.connected)
+                                MaterialTheme.colorScheme.primary
+                            else
+                                MaterialTheme.colorScheme.error,
+                            text = if (uiState.connected) " online" else " offline"
+                        )
+                    }
+                },
                 navigationIcon = {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -57,7 +74,8 @@ fun ChatView(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface
-                )
+                ),
+                modifier = Modifier.height(200.dp)
             )
 
             // --- Messages list ---
@@ -73,39 +91,42 @@ fun ChatView(
             }
 
             // --- Input Field + Send Button ---
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                TextField(
-                    value = messageText,
-                    onValueChange = { messageText = it },
-                    placeholder = { Text("Type a message...", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)) },
-                    colors = TextFieldDefaults.colors(),
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    shape = RoundedCornerShape(20.dp)
-                )
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                Button(
-                    onClick = {
-                        if (messageText.text.isNotBlank()) {
-                            viewModel.sendMessage(messageText.text)
-                            messageText = TextFieldValue("")
-                        }
-                    },
-                    shape = RoundedCornerShape(50),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
-                    )
+            if(uiState.connected) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Send")
+                    TextField(
+                        value = messageText,
+                        onValueChange = { messageText = it },
+                        placeholder = { Text("Type a message...", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)) },
+                        colors = TextFieldDefaults.colors(),
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        shape = RoundedCornerShape(20.dp)
+                    )
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Button(
+                        onClick = {
+                            if (messageText.text.isNotBlank()) {
+                                viewModel.sendMessage(messageText.text)
+                                messageText = TextFieldValue("")
+                            }
+                        },
+                        shape = RoundedCornerShape(50),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        )
+                    ) {
+                        Text("Send")
+                    }
                 }
+
             }
         }
     } else {

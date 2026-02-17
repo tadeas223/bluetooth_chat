@@ -32,8 +32,4 @@ class ContactsViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(contacts = it);
         }.launchIn(viewModelScope)
     }
-
-    fun onContactAdd() {
-
-    }
 }

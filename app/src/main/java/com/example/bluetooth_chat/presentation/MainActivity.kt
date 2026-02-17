@@ -37,23 +37,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val enableBluetoothLauncher = registerForActivityResult(
-            ActivityResultContracts.StartActivityForResult()
-        ) { }
-
         val permissionLauncher = registerForActivityResult(
             ActivityResultContracts.RequestMultiplePermissions()
-        ) { perms ->
-            val canConnect = perms[Manifest.permission.BLUETOOTH_CONNECT] == true
-
-            if (canConnect) {
-                if (!isBluetoothEnabled) {
-                    enableBluetoothLauncher.launch(
-                        Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-                    )
-                }
-            }
-        }
+        ) { }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             permissionLauncher.launch(
@@ -63,12 +49,6 @@ class MainActivity : ComponentActivity() {
                     Manifest.permission.BLUETOOTH_SCAN
                 )
             )
-        } else {
-            if (!isBluetoothEnabled) {
-                enableBluetoothLauncher.launch(
-                    Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-                )
-            }
         }
 
         enableEdgeToEdge()
