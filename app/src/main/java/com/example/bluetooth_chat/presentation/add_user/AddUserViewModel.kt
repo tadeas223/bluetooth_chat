@@ -10,11 +10,14 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class AddUserUiState(
     val device: Device? = null,
+    val showExistsAlert: Boolean = false,
     val done: Boolean = false
 ) {}
 
@@ -36,9 +39,19 @@ class AddUserViewModel @Inject constructor(
                 return@launch
             }
 
+            val contact = contactRepository.selectByAddress(_uiState.value.device!!.address).first();
+            if(contact != null) {
+                _uiState.value = _uiState.value.copy(showExistsAlert = true);
+                return@launch;
+            }
+
             contactRepository.insert(Contact(0, _uiState.value.device!!.address, username))
 
             _uiState.value = _uiState.value.copy(done = true)
         }
+    }
+
+    fun resetAlerts() {
+        _uiState.value = _uiState.value.copy(showExistsAlert = false);
     }
 }

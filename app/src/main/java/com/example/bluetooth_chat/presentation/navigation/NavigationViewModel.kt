@@ -126,7 +126,7 @@ class NavigationViewModel @Inject constructor(
         advertiseDecision?.complete(true)
         advertiseDecision = null
 
-        resetAlert()
+        _uiState.value = _uiState.value.copy(advertiseAccepted = true)
     }
 
     fun resetAlert() {

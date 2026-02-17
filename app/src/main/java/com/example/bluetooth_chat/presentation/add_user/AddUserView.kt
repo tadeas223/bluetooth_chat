@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -30,6 +31,23 @@ fun AddUserView(
 
     LaunchedEffect("AddUserView") {
         viewModel.setDevice(deviceAddress, deviceName)
+    }
+
+    if(uiState.showExistsAlert) {
+        AlertDialog(
+            onDismissRequest = { false },
+            title = { Text("error") },
+            text = { Text("contact is already saved") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.resetAlerts()
+                    navController.popBackStack()
+                }) {
+                    Text("OK")
+                }
+            },
+            properties = DialogProperties(dismissOnClickOutside = false)
+        )
     }
 
     if(uiState.done) {

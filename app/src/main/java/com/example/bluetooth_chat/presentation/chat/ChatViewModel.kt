@@ -8,6 +8,7 @@ import com.example.bluetooth_chat.domain.model.Contact
 import com.example.bluetooth_chat.domain.model.bluetooth.packets.AcceptPacket
 import com.example.bluetooth_chat.domain.model.bluetooth.packets.AdvertisePacket
 import com.example.bluetooth_chat.domain.model.bluetooth.packets.MessagePacket
+import com.example.bluetooth_chat.domain.repository.ChatMessageRepository
 import com.example.bluetooth_chat.domain.repository.ContactRepository
 import com.example.bluetooth_chat.domain.service.bluetooth.BluetoothConnectService
 import com.example.bluetooth_chat.domain.service.bluetooth.Connection
@@ -42,6 +43,7 @@ data class ChatUiState(
 @HiltViewModel
 class ChatViewModel @Inject constructor(
     val contactRepository: ContactRepository,
+    val messageRepository: ChatMessageRepository,
     val bluetoothConnectService: BluetoothConnectService
 ): ViewModel(){
     private val _uiState = MutableStateFlow(ChatUiState());
@@ -52,10 +54,17 @@ class ChatViewModel @Inject constructor(
 
     fun setContact(id: Int) {
         viewModelScope.launch {
-            val contact = contactRepository.selectById(id)
-            _uiState.value = _uiState.value.copy(contact = contact.first())
+            val contact = contactRepository.selectById(id).first()
+            _uiState.value = _uiState.value.copy(contact = contact)
 
-            connection = bluetoothConnectService.createConnection(_uiState.value.contact!!.address)
+            messageRepository
+                .selectByContactId(id)
+                .onEach {
+                    _uiState.value = _uiState.value.copy(messages = it)
+                }
+                .launchIn(this)
+
+            connection = bluetoothConnectService.createConnection(contact.address)
             tryReconnect()
         }
     }
@@ -85,6 +94,10 @@ class ChatViewModel @Inject constructor(
     }
 
     fun sendMessage(msg: String) {
+        if(_uiState.value.contact == null) {
+            throw Exception("contact not set")
+        }
+
         if(connection == null) {
             _uiState.value = _uiState.value.copy(sendFailed = "contact is offline")
             return
@@ -108,6 +121,12 @@ class ChatViewModel @Inject constructor(
 
             if (success) {
                 Log.d("Bluetooth_chat", "message sent")
+                messageRepository.insert(ChatMessage(
+                    id = 0,
+                    isLocal = true,
+                    text = msg,
+                    contact = _uiState.value.contact!!
+                ))
             } else {
                 Log.d("Bluetooth_chat", "failed to send")
                 _uiState.value = _uiState.value.copy(sendFailed = "failed to send")

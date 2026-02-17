@@ -7,7 +7,7 @@ import com.example.bluetooth_chat.data.repository.ChatMessageDao
 import com.example.bluetooth_chat.data.repository.ChatMessageEntity
 import com.example.bluetooth_chat.data.repository.ContactDao
 
-@Database(entities = [ContactEntity::class, ChatMessageEntity::class], version = 3, exportSchema = false)
+@Database(entities = [ContactEntity::class, ChatMessageEntity::class], version = 4, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun contactDao(): ContactDao
     abstract fun chatMessageDao(): ChatMessageDao

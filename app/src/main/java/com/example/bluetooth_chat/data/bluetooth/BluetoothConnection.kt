@@ -11,6 +11,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.*
 import java.io.BufferedReader
 import java.io.BufferedWriter
+import java.io.IOException
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
 import kotlin.coroutines.resume
@@ -107,7 +108,13 @@ class BluetoothConnection(
 
             try {
                 while (isActive) {
-                    val line = reader.readLine() ?: break
+                    val line: String;
+                    try {
+                        line = reader.readLine() ?: break
+                    } catch(e: IOException) {
+                        Log.d("Bluetooth_chat", "read failed because the socket closed")
+                        break
+                    }
 
                     Log.d("Bluetooth_chat", "received from $address $line")
 

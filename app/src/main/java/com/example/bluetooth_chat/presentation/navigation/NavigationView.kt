@@ -47,6 +47,7 @@ fun NavigationView(
 
     LaunchedEffect(uiState.advertiseAccepted) {
         if(uiState.advertisingDevice != null && uiState.advertiseAccepted) {
+            viewModel.resetAlert();
             navController.navigate("add_user/${uiState.advertisingDevice!!.address}/${uiState.advertisingDevice!!.name}")
         }
     }
@@ -58,7 +59,10 @@ fun NavigationView(
 
         if(uiState.advertisingDevice != null) {
             AlertDialog(
-                onDismissRequest = { viewModel.alertDismiss() },
+                onDismissRequest = {
+                        viewModel.alertDismiss()
+                        viewModel.resetAlert()
+                    },
                 title = { Text("alert") },
                 text = { Text("${uiState.advertisingDevice!!.name} wants to pair with you") },
                 confirmButton = {

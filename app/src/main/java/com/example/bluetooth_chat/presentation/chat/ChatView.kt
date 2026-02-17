@@ -124,14 +124,14 @@ fun MessageBubble(message: ChatMessage) {
         Box(
             modifier = Modifier
                 .background(
-                    color = if (message.isLocal) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+                    color = MaterialTheme.colorScheme.primary,
                     shape = RoundedCornerShape(12.dp)
                 )
                 .padding(12.dp)
         ) {
             Text(
                 text = message.text,
-                color = if (message.isLocal) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                color = MaterialTheme.colorScheme.onPrimary,
                 fontSize = 16.sp
             )
         }
