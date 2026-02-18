@@ -19,6 +19,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.bluetooth_chat.presentation.add_user.AddUserView
 import com.example.bluetooth_chat.presentation.chat.ChatView
+import com.example.bluetooth_chat.presentation.contact_settings.ContactSettingsView
 import com.example.bluetooth_chat.presentation.contacts.ContactsView
 import com.example.bluetooth_chat.presentation.navigation.NavigationViewModel
 import com.example.bluetooth_chat.presentation.profile.ProfileView
@@ -122,6 +123,26 @@ fun NavigationView(
                 }
 
                 ChatView(
+                    contactId = id!!,
+                    navController = navController,
+                    modifier = Modifier.safeContentPadding()
+                )
+            }
+
+            composable("contact_settings/{id}",
+                arguments = listOf(
+                    navArgument("id" ) {
+                        type = NavType.IntType
+                    }
+                )
+            ) { entry ->
+
+                val id = entry.arguments?.getInt("id")
+                if(id == null) {
+                    navController.popBackStack()
+                }
+
+                ContactSettingsView(
                     contactId = id!!,
                     navController = navController,
                     modifier = Modifier.safeContentPadding()

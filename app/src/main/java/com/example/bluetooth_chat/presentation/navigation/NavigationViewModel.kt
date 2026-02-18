@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.forEach
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonPrimitive
@@ -51,78 +52,41 @@ class NavigationViewModel @Inject constructor(
     }
 
     init {
-        bluetoothConnectService.onReceive { connection, json ->
-            if(advertisingConnection != null) {
-                return@onReceive
-            }
-
-            if(json["type"]!!.jsonPrimitive.content == "message") {
-               viewModelScope.launch {
-                   val id = json["id"]!!.jsonPrimitive.content;
-                   var contact: Contact? = null;
-
-                   try {
-                       contact = contactRepository.selectByAddress(connection.address).first();
-                   } catch(e: Exception) {
-                       connection.send(AcceptPacket(id, false).serialize());
-                       return@launch
-                   }
-
-                   try {
-                       chatMessageRepository.insert(
-                           ChatMessage(
-                               id = 0,
-                               contact = contact!!,
-                               isLocal = false,
-                               text = json["text"]!!.jsonPrimitive.content
-                           )
-                       )
-                   } catch(e: Exception) {
-                       connection.send(AcceptPacket(id, false).serialize());
-                   }
-
-                   connection.send(AcceptPacket(id, true).serialize());
-                   return@launch
-               }
-            }
-
-            if(json["type"]!!.jsonPrimitive.content == "advertise") {
-                advertisingConnection = connection
-                _uiState.value = _uiState.value.copy(
-                    advertisingDevice = Device(
-                        address = connection.address,
-                        name = connection.name
-                    ),
-                )
-
-                viewModelScope.launch {
-                    val id = json["id"]!!.jsonPrimitive.content;
-                    val accepted = waitForAdvertiseDecision()
-
-                    if (accepted) {
-                        connection.send(AcceptPacket(id,true).serialize())
-                        _uiState.value = _uiState.value.copy(advertiseAccepted = true)
-                    } else {
-                        connection.send(AcceptPacket(id,false).serialize())
-                        _uiState.value = _uiState.value.copy(advertiseAccepted = false)
-                    }
-
-                    advertisingConnection = null
-                }
-            }
-        }
-
-        startServer()
-    }
-
-    fun startServer() {
-        bluetoothConnectService.startServer()
         viewModelScope.launch {
-            bluetoothConnectService.bluetoothEnabled.collect { enabled ->
-                if (!enabled) {
-                    bluetoothConnectService.requestBluetooth()
+            bluetoothConnectService.incomingPackets.collect { pair ->
+                val connection = pair.first;
+                val json = pair.second;
+
+                if (advertisingConnection != null) {
+                    return@collect
+                }
+
+                if (json["type"]!!.jsonPrimitive.content == "advertise") {
+                    advertisingConnection = connection
+                    _uiState.value = _uiState.value.copy(
+                        advertisingDevice = Device(
+                            address = connection.address,
+                            name = connection.name
+                        ),
+                    )
+
+                    viewModelScope.launch {
+                        val id = json["id"]!!.jsonPrimitive.content;
+                        val accepted = waitForAdvertiseDecision()
+
+                        if (accepted) {
+                            connection.send(AcceptPacket(id, true).serialize())
+                            _uiState.value = _uiState.value.copy(advertiseAccepted = true)
+                        } else {
+                            connection.send(AcceptPacket(id, false).serialize())
+                            _uiState.value = _uiState.value.copy(advertiseAccepted = false)
+                        }
+
+                        advertisingConnection = null
+                    }
                 }
             }
+
         }
     }
 
@@ -149,8 +113,5 @@ class NavigationViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
-
-        bluetoothConnectService.onReceive(null)
-        bluetoothConnectService.stopServer()
     }
 }

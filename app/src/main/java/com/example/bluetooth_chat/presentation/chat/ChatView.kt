@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,8 +18,11 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavHostController
 import com.example.bluetooth_chat.domain.model.ChatMessage
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,13 +40,20 @@ fun ChatView(
         viewModel.setContact(contactId)
     }
 
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.addObserver(viewModel)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(viewModel)
+        }
+    }
+
     if(uiState.contact != null) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            // --- Top App Bar ---
             TopAppBar(
                 title = {
                     Column {
@@ -62,6 +73,19 @@ fun ChatView(
                         )
                     }
                 },
+                actions = {
+                    Box {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = "Menu",
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clickable {
+                                    navController.navigate("contact_settings/${contactId}")
+                                }
+                        )
+                    }
+                },
                 navigationIcon = {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -78,19 +102,17 @@ fun ChatView(
                 modifier = Modifier.height(200.dp)
             )
 
-            // --- Messages list ---
             LazyColumn(
                 modifier = Modifier
                     .weight(1f)
                     .padding(horizontal = 8.dp),
-                reverseLayout = true // latest messages at bottom
+                reverseLayout = true
             ) {
                 items(uiState.messages.reversed()) { message ->
                     MessageBubble(message)
                 }
             }
 
-            // --- Input Field + Send Button ---
             if(uiState.connected) {
                 Row(
                     modifier = Modifier
@@ -157,4 +179,6 @@ fun MessageBubble(message: ChatMessage) {
             )
         }
     }
+
+
 }

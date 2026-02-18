@@ -9,7 +9,10 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
+import com.example.bluetooth_chat.TaskProcessor
 import com.example.bluetooth_chat.data.bluetooth.BluetoothConnection
 import com.example.bluetooth_chat.data.bluetooth.toDevice
 import com.example.bluetooth_chat.data.hasPermissions
@@ -22,11 +25,16 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import java.io.IOException
 import java.util.UUID
@@ -40,6 +48,7 @@ class AndroidBluetoothConnectService @Inject constructor(
         const val SERVICE_UUID = "2bf1c8cf-f803-440d-8c91-b51f5115f232"
     }
 
+    @RequiresApi(Build.VERSION_CODES.S)
     override val requiredPermissions = listOf(
         Manifest.permission.BLUETOOTH_CONNECT,
     )
@@ -49,6 +58,13 @@ class AndroidBluetoothConnectService @Inject constructor(
     private val _activeConnections = MutableStateFlow<Map<Device, Connection>>(emptyMap())
     override val activeConnections
         get() = _activeConnections.asStateFlow()
+
+    private val _incomingPackets = MutableSharedFlow<Pair<Connection, JsonObject>>(
+        replay = 0,
+        extraBufferCapacity = 16
+    )
+    override val incomingPackets: SharedFlow<Pair<Connection, JsonObject>>
+        get() = _incomingPackets.asSharedFlow()
 
     private val bluetoothManager by lazy {
         context.getSystemService(BluetoothManager::class.java)
@@ -60,8 +76,7 @@ class AndroidBluetoothConnectService @Inject constructor(
 
     private var currentServerSocket: BluetoothServerSocket? = null
     private var serverJob: Job? = null
-
-    private var onReceive: ((Connection, JsonObject) -> Unit)? = null
+    private var emitProcessor: TaskProcessor = TaskProcessor()
 
     override val bluetoothEnabled: Flow<Boolean> = callbackFlow {
         val adapter = bluetoothAdapter
@@ -97,14 +112,6 @@ class AndroidBluetoothConnectService @Inject constructor(
             val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
             context.startActivity(enableBtIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         }
-    }
-
-    override fun onReceive(callback: ((Connection, JsonObject) -> Unit)?) {
-        onReceive = callback
-    }
-
-    override fun onBluetoothOff(callback: () -> Unit) {
-        onBluetoothOff = callback;
     }
 
     override fun startServer() {
@@ -155,10 +162,12 @@ class AndroidBluetoothConnectService @Inject constructor(
                             current.remove(device)
                         }
 
-                        _activeConnections.value = current.toMap()
+                        _activeConnections.value= current.toMap()
                     }
 
-                    connection.onReceive(onReceive)
+                    connection.onReceive { con, json ->
+                        _incomingPackets.tryEmit(Pair(con, json))
+                    }
 
                     val current = _activeConnections.value.toMutableMap()
                     current[device] = connection
@@ -174,6 +183,7 @@ class AndroidBluetoothConnectService @Inject constructor(
         }
 
         serverJob?.cancel()
+        emitProcessor.stop()
         currentServerSocket?.close()
     }
 
