@@ -28,8 +28,8 @@ import kotlin.collections.listOf
 
 
 sealed class BottomNavItem(val route: String, val label: String) {
-    object Contacts : BottomNavItem("contacts", "Contacts")
-    object Profile : BottomNavItem("profile", "Profile")
+    object Contacts : BottomNavItem("contacts", "contacts")
+    object Profile : BottomNavItem("profile", "settings")
     //object Settings : BottomNavItem("settings", "Settings")
 }
 
