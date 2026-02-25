@@ -1,3 +1,9 @@
 package com.example.bluetooth_chat.presentation.components
 
-data class ClickableCardItem (val text: String, val onClick: () -> Unit){}
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.runtime.Composable
+
+data class ClickableCardItem(
+    val onClick: () -> Unit,
+    val content: @Composable () -> Unit
+)

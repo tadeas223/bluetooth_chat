@@ -102,11 +102,12 @@ fun ContactSettingsView (
 
             ClickableCard(
                 cardItems = listOf(
-                    ClickableCardItem(uiState.contact!!.address, {
-                    }),
-                    ClickableCardItem("delete contact", {
-                        viewModel.deleteContact()
-                    })
+                    ClickableCardItem(onClick = {}) {
+                        Text(uiState.contact!!.address)
+                    },
+                    ClickableCardItem(onClick = { viewModel.deleteContact() }) {
+                        Text("delete contact")
+                    }
                 ),
                 modifier = Modifier
                     .fillMaxWidth()

@@ -14,10 +14,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.bluetooth_chat.presentation.theme.MochaBlue
 import com.example.bluetooth_chat.presentation.theme.MochaMantle
-import com.example.bluetooth_chat.presentation.theme.MochaSky
 
 @Composable
 fun ClickableCard(
@@ -45,7 +43,7 @@ fun ClickableCard(
                     colors = CardDefaults.cardColors(
                         containerColor = if (isPressed) MochaBlue.copy(alpha = 0.3f) else MochaMantle
                     ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp), // remove shadow
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
                     shape = MaterialTheme.shapes.medium
                 ) {
                     Row(
@@ -54,13 +52,7 @@ fun ClickableCard(
                             .padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = item.text,
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                color = MochaSky,
-                                fontSize = 16.sp
-                            )
-                        )
+                        item.content()
                     }
                 }
             }

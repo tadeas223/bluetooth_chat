@@ -100,9 +100,10 @@ fun ScanView(navController: NavController,
         else -> {
             val cardItems = uiState.devices.map { device ->
                 ClickableCardItem(
-                    text = "${device.name}",
                     onClick = { viewModel.onDeviceClicked(device) }
-                )
+                ) {
+                    Text("${device.name}")
+                }
             }
 
             ClickableCard(cardItems = cardItems, modifier = modifier.fillMaxSize())

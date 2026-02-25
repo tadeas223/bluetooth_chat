@@ -41,11 +41,8 @@ class MainActivity : ComponentActivity() {
     private val isBluetoothEnabled: Boolean
         get() = bluetoothAdapter?.isEnabled == true
 
-    private val prefs by lazy { getSharedPreferences("app_prefs", MODE_PRIVATE) }
-
     private var permissionsGranted by mutableStateOf(false)
 
-    // Bluetooth permissions
     private val bluetoothPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
@@ -53,16 +50,12 @@ class MainActivity : ComponentActivity() {
         if (permissionsGranted) startAppLogic()
     }
 
-    // Notification permission
-    private val notificationPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) {
-        prefs.edit().putBoolean("notification_permission_requested", true).apply()
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Initial permission check
+        permissionsGranted = checkPermissions()
 
         setContent {
             Bluetooth_chatTheme {
@@ -75,9 +68,7 @@ class MainActivity : ComponentActivity() {
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     if (permissionsGranted) {
-                        NavigationView(
-                            modifier = Modifier.fillMaxSize()
-                        )
+                        NavigationView(modifier = Modifier.fillMaxSize())
                     } else {
                         Text(
                             "Bluetooth permissions are required to use this app.\nClick the button below or enable permissions in settings.",
@@ -96,67 +87,55 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        requestBluetoothPermissions()
+        // Request permissions if not already granted
+        if (!permissionsGranted) requestBluetoothPermissions() else startAppLogic()
     }
 
-    override fun onResume() {
-        super.onResume()
-        // <-- Request notification permission only after activity is resumed
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            requestNotificationPermissionOnce()
+    private fun checkPermissions(): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val required = arrayOf(
+                Manifest.permission.BLUETOOTH_CONNECT,
+                Manifest.permission.BLUETOOTH_SCAN,
+                Manifest.permission.BLUETOOTH_ADVERTISE
+            )
+            return required.all { ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED }
         }
+        return true // Permissions not needed below Android S
     }
 
     private fun requestBluetoothPermissions() {
         val permissionsToRequest = mutableListOf<String>()
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT)
-                != PackageManager.PERMISSION_GRANTED
-            ) permissionsToRequest.add(Manifest.permission.BLUETOOTH_CONNECT)
-
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN)
-                != PackageManager.PERMISSION_GRANTED
-            ) permissionsToRequest.add(Manifest.permission.BLUETOOTH_SCAN)
-
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_ADVERTISE)
-                != PackageManager.PERMISSION_GRANTED
-            ) permissionsToRequest.add(Manifest.permission.BLUETOOTH_ADVERTISE)
+            val required = arrayOf(
+                Manifest.permission.BLUETOOTH_CONNECT,
+                Manifest.permission.BLUETOOTH_SCAN,
+                Manifest.permission.BLUETOOTH_ADVERTISE
+            )
+            required.forEach { permission ->
+                if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
+                    permissionsToRequest.add(permission)
+                }
+            }
         }
 
-        if (permissionsToRequest.isNotEmpty()) {
-            bluetoothPermissionLauncher.launch(permissionsToRequest.toTypedArray())
-        } else {
+        if (permissionsToRequest.isEmpty()) {
             permissionsGranted = true
             startAppLogic()
-        }
-    }
-
-    private fun requestNotificationPermissionOnce() {
-        if (prefs.getBoolean("notification_permission_requested", false)) return
-
-        if (ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.POST_NOTIFICATIONS
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         } else {
-            prefs.edit().putBoolean("notification_permission_requested", true).apply()
+            bluetoothPermissionLauncher.launch(permissionsToRequest.toTypedArray())
         }
     }
 
     private fun startAppLogic() {
         if (!isBluetoothEnabled) return
 
-        val intent = Intent(this, BluetoothForegroundService::class.java)
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
             ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT)
             != PackageManager.PERMISSION_GRANTED
         ) return
 
-        if(isServiceRunning(BluetoothForegroundService::class.java)) {
+        val intent = Intent(this, BluetoothForegroundService::class.java)
+        if (!isServiceRunning(BluetoothForegroundService::class.java)) {
             ContextCompat.startForegroundService(this, intent)
         }
     }

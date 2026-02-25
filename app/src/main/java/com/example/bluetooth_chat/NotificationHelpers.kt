@@ -21,11 +21,11 @@ fun showMessageNotification(context: Context, message: String, contactName: Stri
     )
 
     val builder = NotificationCompat.Builder(context, "messages_channel")
-        .setSmallIcon(R.drawable.ic_launcher_foreground) // use your icon
+        .setSmallIcon(R.mipmap.ic_launcher_foreground)
         .setContentTitle(contactName)
         .setContentText(message)
         .setPriority(NotificationCompat.PRIORITY_HIGH)
-        .setAutoCancel(true) // removes notification when tapped
+        .setAutoCancel(true)
         .setContentIntent(pendingIntent)
 
     with(NotificationManagerCompat.from(context)) {
@@ -52,4 +52,22 @@ fun createNotificationChannel(context: Context) {
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.createNotificationChannel(channel)
     }
+}
+
+fun closeNotificationChannel(context: Context, channelId: String = "messages_channel") {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        val notificationManager =
+            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.deleteNotificationChannel(channelId)
+    }
+}
+
+fun notificationChannelExists(context: Context, channelId: String = "messages_channel"): Boolean {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        val notificationManager =
+            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val channel = notificationManager.getNotificationChannel(channelId)
+        return channel != null
+    }
+    return false
 }

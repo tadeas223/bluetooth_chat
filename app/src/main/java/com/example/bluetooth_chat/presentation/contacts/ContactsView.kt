@@ -36,9 +36,10 @@ fun ContactsView(
         else -> {
             val cardItems = uiState.contacts.map { contact ->
                 ClickableCardItem(
-                    text = contact.username,
                     onClick = { navController.navigate("chat/${contact.id}") }
-                )
+                ) {
+                    Text(contact.username)
+                }
             }
 
             ClickableCard(cardItems = cardItems, modifier = modifier.fillMaxSize())
