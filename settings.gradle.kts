@@ -23,6 +23,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Bluetooth_chat"
+rootProject.name = "bluetooth_chat"
 include(":app")
  

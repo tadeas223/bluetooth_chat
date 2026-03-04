@@ -11,15 +11,15 @@ plugins {
 }
 
 android {
-    namespace = "com.example.bluetooth_chat"
+    namespace = "com.macatadeas.bluetooth_chat"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.bluetooth_chat"
+        applicationId = "com.macatadeas.bluetooth_chat"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -54,6 +54,8 @@ kotlin {
 }
 
 dependencies {
+    implementation("androidx.datastore:datastore-preferences:1.2.0")
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
